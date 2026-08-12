@@ -57,6 +57,19 @@ Steht dort `SETUP …`, fehlt eine Pflichtvariable — die Zeile nennt sie.
 Dann `https://<deine-domain>/health` → `"healthy"`, und Login mit `admin` und
 deinem Passwort.
 
+## Diagnose
+
+Wenn etwas nicht läuft — `check.sh` auf dem Server ausführen:
+
+```bash
+./check.sh                              # Container, Netz, Image, Health
+./check.sh naudit.deine-domain.de       # zusätzlich von außen
+```
+
+Prüft die vier Stellen, an denen es erfahrungsgemäß hakt: läuft der Container,
+hängt er am `dokploy-network` (sonst antwortet Traefik mit 502), ist `git` im
+Image, und was meldet der Startup-Report.
+
 ## Danach: Webhook in GitHub
 
 Repo → Settings → Webhooks → Add webhook:
