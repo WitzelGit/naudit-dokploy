@@ -1,0 +1,67 @@
+services:
+  naudit:
+    build:
+      context: .
+      args:
+        NAUDIT_VERSION: ${NAUDIT_VERSION:-latest}
+    restart: unless-stopped
+
+    environment:
+      # --- WebUI-Admin ---------------------------------------------------
+      # Wird nur angelegt, solange noch kein Konto existiert. Setzen heisst:
+      # der offene Einrichtungs-Assistent kommt gar nicht erst hoch.
+      Naudit__Ui__Admin__Username: ${NAUDIT_ADMIN_USER:-admin}
+      Naudit__Ui__Admin__InitialPassword: ${NAUDIT_ADMIN_PASSWORD:?in der Environment-Maske setzen}
+
+      # --- Git-Plattform -------------------------------------------------
+      Naudit__Git__Platform: GitHub
+      Naudit__GitHub__Token: ${GITHUB_TOKEN:?in der Environment-Maske setzen}
+      Naudit__GitHub__WebhookSecret: ${GITHUB_WEBHOOK_SECRET:?in der Environment-Maske setzen}
+
+      # --- KI: Claude-Abo statt API-Key ----------------------------------
+      # CLAUDE_CODE_OAUTH_TOKEN hat bewusst kein Naudit__-Praefix: die Variable
+      # geht an die claude-CLI, die Naudit als Unterprozess startet.
+      Naudit__Ai__Provider: ClaudeCode
+      Naudit__Ai__Model: ${CLAUDE_MODEL:-sonnet}
+      CLAUDE_CODE_OAUTH_TOKEN: ${CLAUDE_CODE_OAUTH_TOKEN:?in der Environment-Maske setzen}
+
+    volumes:
+      # SQLite-DB, Konten, Review-Historie, Sitzungsschluessel. Benanntes
+      # Volume, KEIN Bind-Mount: der Container laeuft als uid 1654 und kann
+      # ein root-eigenes Host-Verzeichnis nicht beschreiben - Naudit stirbt
+      # dann sofort mit "SQLite Error 14: unable to open database file".
+      - naudit-data:/data
+      # Nur noetig, wenn du SAST einschaltest: Trivy legt hier seine
+      # Schwachstellen-DB ab und laedt sie sonst nach jedem Start neu.
+      # - naudit-cache:/home/app/.cache
+
+    networks:
+      - dokploy-network
+
+    healthcheck:
+      # Im Image gibt es weder curl noch wget - beide werden im Build wieder
+      # entfernt. bash ist da, also der Weg ueber /dev/tcp.
+      test: ["CMD", "bash", "-c", 'exec 3<>/dev/tcp/127.0.0.1/8080; printf "GET /health HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n" >&3; grep -q "200 OK" <&3']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+
+    mem_limit: ${NAUDIT_MEM_LIMIT:-3g}
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+volumes:
+  naudit-data:
+  # naudit-cache:
+
+# Von Dokploy bereitgestellt - darueber erreicht Traefik den Container.
+# Kein ports:-Eintrag noetig und auch nicht gewollt: der wuerde 8080
+# unverschluesselt am oeffentlichen Interface aufmachen.
+networks:
+  dokploy-network:
+    external: true
