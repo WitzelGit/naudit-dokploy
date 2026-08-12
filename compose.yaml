@@ -13,11 +13,6 @@ services:
       Naudit__Ui__Admin__Username: ${NAUDIT_ADMIN_USER:-admin}
       Naudit__Ui__Admin__InitialPassword: ${NAUDIT_ADMIN_PASSWORD:?in der Environment-Maske setzen}
 
-      # --- Git-Plattform -------------------------------------------------
-      Naudit__Git__Platform: GitHub
-      Naudit__GitHub__Token: ${GITHUB_TOKEN:?in der Environment-Maske setzen}
-      Naudit__GitHub__WebhookSecret: ${GITHUB_WEBHOOK_SECRET:?in der Environment-Maske setzen}
-
       # --- KI: Claude-Abo statt API-Key ----------------------------------
       # CLAUDE_CODE_OAUTH_TOKEN hat bewusst kein Naudit__-Praefix: die Variable
       # geht an die claude-CLI, die Naudit als Unterprozess startet.
